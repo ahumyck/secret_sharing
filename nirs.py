@@ -1,41 +1,38 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[26]:
+# In[18]:
 
 
-def discriminant(a, b, p):
-    return (4*a*a*a + 27*b*b) % p
+def torsion_subgroup_generator(E, r):
+    G, H = E.gens()
+    n = G.order() // r
+    return n * G, n * H
 
-def generate_random_elliptic_curve(field, prime):
-    d = 0
-    while d == 0:
-        a = field.random_element()
-        b = field.random_element()
-        d = discriminant(a, b, prime)
-    return EllipticCurve(field, [a,b])
-
-
-def irredicublePolynomial(prime,power):
-    R = GF(prime)['x']
-    counter = 0
-    for p in R.polynomials(power):
-        if p.is_irreducible():
-            return p
-
-q = 139
+p = 47
+r = 6
+q = p ** r
+k = 1
 F.<x> = GF(q)
-E = generate_random_elliptic_curve(F, q)
-print(E)
+E = EllipticCurve(F, [4, 0])
+G, H  = torsion_subgroup_generator(E, 103)
+
+alpha = 51
+beta = 35
+W = alpha * G + beta * H
+        
 
 
-# In[62]:
+# In[ ]:
 
 
-t = 5
-n = 8
-l = 13
-
+def secret_example(E, how_many_secrets):
+    secrets = []
+    for i in range(how_many_secrets):
+        secrets.append(E.random_element())
+    
+    return secrets
+        
 
 def treshold_matrix_generation(t,n):
     m = [[1] * t]
@@ -58,7 +55,7 @@ def generate_pairings_numbers(t, l):
         b.append(randint(0,l - 1))
     return (matrix([a]),matrix([b]))
 
-def compute_coefficients(A, t, l):
+def compute_shares(A, t, l):
     _a, _b = generate_pairings_numbers(t, l)
     a = (A * _a.transpose()).column(0)
     b = (A * _b.transpose()).column(0)
@@ -68,13 +65,19 @@ def compute_coefficients(A, t, l):
         a_b.append((a[i],b[i]))
         
     return a_b
-    
-    
-    
 
-m = treshold_matrix_generation(t, n)
-print(compute_coefficients(m, t, l))
-    
+# E, q, l, k, alpha, beta, W = example()
+# t, n = 2, 3
+# secrets_number = 2
+# A = treshold_matrix_generation(t, n)
+# p_shares = compute_shares(A, t, l)
+# secrets = secret_example(E, secrets_number)
+# print(p_shares)
+
+
+# In[ ]:
+
+
 
 
 
