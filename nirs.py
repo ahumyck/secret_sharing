@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+# In[1]:
+
+
 def torsion_subgroup_generators(E, r):
     G, H = E.gens()
     n = G.order() // r
@@ -15,9 +18,13 @@ F.<x> = GF(q)
 E = EllipticCurve(F, [4, 0])
 G, H  = torsion_subgroup_generators(E, l)
 
-alpha = 51
-beta = 35
+alpha = 51 #not in public
+beta = 35 #not in public
 W = alpha * G + beta * H
+        
+
+
+# In[46]:
 
 
 def generate_public_shares(Qs, Rs):
@@ -35,9 +42,9 @@ def add(pairings, secrets):
     return res
 
 
-def pairings(Qs, Ps, W):
+def pairings(Qs, P, W):
     res = []
-    for Q, P in zip(Qs, Ps):
+    for Q in Qs:
         res.append(pairing(Q,P,W))
     return res
 
@@ -71,8 +78,8 @@ def generate_pairings_numbers(t, l):
     a = []
     b = []
     for i in range(t):
-        a.append(randint(0,l - 1))
-        b.append(randint(0,l - 1))
+        a.append(randint(1,l - 1))
+        b.append(randint(1,l - 1))
     return a, b
 
 def compute_shares(A, numbers):
@@ -88,12 +95,14 @@ def transform_to_points(numbers):
 
 t, n = 2, 3
 secrets = secret_example(E, t) #secret_example
-A = treshold_matrix_generation(t, n)
+A = threshold_matrix_generation(t, n)
 numbers = generate_pairings_numbers(t, l)
 Ps = transform_to_points(numbers)
+P = Ps[-1]
+print(Ps[-1])
 user_points = compute_shares(A, numbers) #giveaway to Users
 Qs = transform_to_points(generate_pairings_numbers(t, l))
-shares_as_points = pairings(Qs,Ps,W)
+shares_as_points = pairings(Qs,P,W)
 Rs = add(shares_as_points, secrets)
 
 public_information = generate_public_shares(Qs,Rs)
@@ -112,6 +121,10 @@ for info in public_information:
     print(info)
 
 
+
+# In[47]:
+
+
 def subtract(Rs, Ts):
     res = []
     for R, T in zip(Rs, Ts):
@@ -120,6 +133,7 @@ def subtract(Rs, Ts):
     
 
 def invert_matrix(A, rows):
+    print(A.matrix_from_rows(rows))
     return A.matrix_from_rows(rows).inverse()
 
 def calculate_S(Qs, UPs, W, rows):
@@ -136,19 +150,88 @@ def calculate_T(Ss, A):
     rows = A.rows()
     Ts = []
     for i in range(len(rows)):
-        T = Integer(rows[i][0]) * Ss[i][0]
+        T = int(rows[-1][0]) * Ss[i][0]
         for j in range(1, len(rows[i]), 1):
-            T += Integer(rows[i][j]) * Ss[i][j]
+            T += int(rows[-1][j]) * Ss[i][j]
         Ts.append(T)
     return Ts
 
+"""
+    Each of them can calculate {y(k)}
+    and use it to restore ~P(t), so instead
+    we can calculate pairing e(i) = (Q(i), ~P(t)) to get our secret back
+    with following formula : S(i) = R(i) - e(i)
+"""
+
 
 rows = [0, 1]
-Ss = calculate_S(Qs, user_points, W, rows)
+pseudo_shares = calculate_S(Qs, user_points, W, rows)
 inv = invert_matrix(A, rows)
-Ts = calculate_T(Ss, inv)
-recover = subtract(Rs, Ts)
-print("secrets = {}".format(recover))
+print(inv)
+Ts = calculate_T(pseudo_shares, inv)
+recovered_secrets = subtract(Rs, Ts)
+print("secrets = {}".format(recovered_secrets))
+    
+
+
+# In[60]:
+
+
+print("user_points = {}".format(user_points))
+print("public")
+for info in public_information:
+    print(info)
+# print(numbers)
+_a, _b = matrix([numbers[0]]), matrix([numbers[1]])
+_a = _a.transpose()
+_b = _b.transpose()
+a = A * _a
+b = A * _b
+print("rows = {}".format(rows))
+print(_a)
+print(_b)
+# print()
+print(a.column(0))
+print(b.column(0))
+
+def v(a, b, rows):
+    a1 = []
+    b1 = []
+    for i in range(len(rows)):
+        a1.append(a.column(0)[rows[i]])
+        b1.append(b.column(0)[rows[i]])
+    
+    return matrix(a1), matrix(b1)
+
+print()
+print(inv)
+print()
+aa, bb = v(a, b, rows)
+aaa = aa * inv
+bbb = bb * inv
+print(aaa)
+print(bbb)
+
+pppp = (int(aaa.row(0)[1]), int(bbb.row(0)[1]))
+print(pppp)
+Q1 = (public_information[0][0], public_information[0][1])
+Q2 = (public_information[1][0], public_information[1][1])
+print(Q1, Q2)
+e1 = pairing(Q1, pppp, W)
+e2 = pairing(Q2, pppp, W)
+
+print(shares_as_points)
+
+# print(e1)
+# print(e2)
+
+print(Rs[0] - e1)
+print(Rs[1] - e2)
+        
+
+
+# In[ ]:
+
 
 
 
