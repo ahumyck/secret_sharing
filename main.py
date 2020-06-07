@@ -7,29 +7,24 @@ def secret_example(E, how_many_secrets):
         secrets.append(E.random_element())
     return secrets
 
-def collegium(UPs, rows):
-    ups = []
-    for i in range(len(rows)):
-        ups.append(UPs[rows[i]])
-    
-    return ups
+t, n = 3, 5
+d = Dealer(t, n)
+E, q, l, k , G, H, W = d.get_public_bulletin()
+secrets = secret_example(E, t)
 
-t, n = 2, 5
-dealer = Dealer(t, n)
-E, q, l, k, W = dealer.get_public_bulletin()
 secrets = secret_example(E, t) #secret_example
-print("secrets = ", secrets)
-user_points = dealer.compute_shares()
-print("user points =", user_points)
-public_information = dealer.get_public_bulletin_secrets(secrets)
+print("secrets =", secrets)
 
-print("public")
-for info in public_information:
-    print(info)
-
-users_who_wants_their_secret = [0, 2]
-collegium_points = collegium(user_points, users_who_wants_their_secret)
-
-oracle = Oracle(public_information, user_who_wants_their_secret, collegium_points)
-secrets = oracle.restore_secrets(W)
-print(secrets)
+shares = d.compute_shares()
+print("shares =", shares)
+ver_info = d.verification_information()
+Vs = ver_info['Vs']
+Q = ver_info['Q']
+print("Vs =", Vs)
+print("Q =", Q)
+Rs = d.get_public_bulletin_secrets(secrets)
+print("Rs =", Rs)
+print("\n\n------------------------------\n\n")
+O = Oracle()
+r_secrets = O.restore_secrets(Rs, shares, Vs, Q, l, W)
+print("secrets = ", r_secrets)
