@@ -1,4 +1,4 @@
-from pair import pairing, pairings2
+from pair import pairing
 
 class Dealer:
     def __init__(self, t, n, random_distributor = None):
@@ -40,12 +40,6 @@ class Dealer:
         p_ring = PolynomialRing(ring, "x")
         self.polynomial = p_ring(f)
         
-    def __subtract(self, Rs, Ts):
-        res = []
-        for R, T in zip(Rs, Ts):
-            res.append(R - T)
-        return res
-        
 
     def verification_information(self):
         c = self.random_distributor(0, self.l - 1)
@@ -54,8 +48,8 @@ class Dealer:
         
         Vs = dict()
         Vs[0] = pairing(self.secret_point, Q, self.W)
-        for i in range(len(self.shares)):
-            Vs[i + 1] = pairing(self.shares[i], Q, self.W)
+        for key in self.shares:
+            Vs[key] = pairing(self.shares[key], Q, self.W)
             
         verification_info = dict()
         verification_info['Q'] = Q
@@ -64,8 +58,14 @@ class Dealer:
         return verification_info
     
     def get_public_bulletin_secrets(self, secrets):
-        p = pairings2(self.secret_point, self.shares, self.W)
-        return self.__subtract(secrets, p)
+        a, b = self.secret_point
+        P = a * G + b * H
+        res = []
+        for i in range(len(secrets)):
+            Pi = self.W.weil_pairing((i + 1) * P, self.l)
+            res.append(secrets[i] - Pi)
+        return res
+        
             
     def get_public_bulletin(self):
         return self.E, self.q, self.l, self.k, self.G, self.H, self.W
@@ -74,8 +74,8 @@ class Dealer:
         return value, self.polynomial(value)
     
     def compute_shares(self):
-        self.shares = []
-        for i in range(1, self.t + 1, 1):
-            self.shares.append(self.compute_share(i))
+        self.shares = dict()
+        for i in range(1, self.n + 1, 1):
+            self.shares[i] = self.compute_share(i)
         
         return self.shares
